@@ -59,18 +59,18 @@ Browser / Electron (renderer)  <-->  FastAPI (server)  <-->  python-garminconnec
 
 4. Define API endpoints
    ```
-   GET /summary          - today's steps, calories, stress, body battery
-   GET /sleep            - last night's sleep score, stages, HRV
-   GET /heart-rate       - resting HR, daily HR graph data
-   GET /hrv              - HRV status and 5-day trend (Fenix 7 compatible)
-   GET /activities       - recent activities (last 7 days)
-   GET /training-status  - training load, training readiness
-   GET /cache/clear      - bust the cache manually (dev utility)
+   GET  /summary          - today's steps, calories, stress, body battery
+   GET  /sleep-data       - last night's sleep score, stages, HRV
+   GET  /heart-rate       - resting HR, daily HR graph data
+   GET  /hrv              - HRV status and 5-day trend (Fenix 7 compatible)
+   GET  /activities       - recent activities (last 7 days)
+   GET  /training-status  - training load, training readiness
+   POST /cache/clear      - bust the cache manually (dev utility)
    ```
 
 5. Run and test with curl / browser
 
-**Verify:** `curl http://localhost:8000/summary` returns real data. Second call returns same data instantly (from cache). `curl http://localhost:8000/cache/clear` resets it.
+**Verify:** `curl http://localhost:8000/summary` returns real data. Second call returns same data instantly (from cache). `curl -X POST http://localhost:8000/cache/clear` resets it.
 
 ---
 
@@ -84,6 +84,7 @@ FastAPI serves the frontend as static files (`StaticFiles` mount). Open `http://
 
 1. Mount static files in FastAPI
    - `app.mount("/", StaticFiles(directory="frontend", html=True))`
+   - **Must be added last in `main.py`**, after all API routes -- the mount is greedy and will intercept API calls if placed first
    - Learn: how FastAPI serves static content alongside API routes
 
 2. Layout (`index.html`)
@@ -93,12 +94,12 @@ FastAPI serves the frontend as static files (`StaticFiles` mount). Open `http://
    - Bundle Chart.js locally (`frontend/chart.umd.min.js`) -- no CDN
 
 3. Stats cards
-   - Fetch `/summary`, `/sleep`, `/hrv`
+   - Fetch `/summary`, `/sleep-data`, `/hrv`
    - Render as simple number + label cards
 
 4. Charts (Chart.js)
    - Heart rate over the day (line chart) - from `/heart-rate`
-   - Sleep stages (bar/timeline chart) - from `/sleep`
+   - Sleep stages (bar/timeline chart) - from `/sleep-data`
    - HRV trend (line chart, 5 days) - from `/hrv`
    - Learn: Chart.js basics -- datasets, scales, tooltips
 
@@ -149,9 +150,13 @@ FastAPI serves the frontend as static files (`StaticFiles` mount). Open `http://
    - Show an error message if Garmin API is unreachable
 
 3. Refresh button
-   - Calls `/cache/clear` then re-fetches all endpoints
+   - POSTs to `/cache/clear` then re-fetches all endpoints
 
-4. Packaging (optional)
+4. Extend Garmin API coverage
+   - Phase 1 exposes 6 endpoints, a small subset of python-garminconnect (130+ methods)
+   - Wrap additional methods as cached HTTP endpoints on demand
+
+5. Packaging (optional)
    - `electron-builder` to produce a `.exe` installer
    - Bundle Python + FastAPI into the package (via PyInstaller)
 

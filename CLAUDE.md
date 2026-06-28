@@ -21,6 +21,9 @@ main.js             Electron entry point (Phase 3+)
 cd garmin-backend
 uv run uvicorn main:app --reload --port 8000
 
+# Lint (also runs automatically on every file edit)
+uv run --directory garmin-backend pre-commit run --all-files
+
 # Frontend - just open http://localhost:8000 in a browser (Phase 1-2)
 ```
 
@@ -29,8 +32,36 @@ uv run uvicorn main:app --reload --port 8000
 - Python env managed by `uv` -- do not use pip directly
 - No JS build tooling -- plain HTML/CSS/JS only, no npm bundler, no JSX
 - Chart.js bundled locally in `frontend/` -- no CDN
-- SQLite cache TTL is 3600s per endpoint; `GET /cache/clear` busts it
+- SQLite cache TTL is 3600s per endpoint; `POST /cache/clear` busts it
+
+## Code style
+
+### General
+
+- Add empty line before every control statement, unless it is first line of deeper indent.
+- Add empty line after every control statement.
+- Do not be afraid to add empty line to ease up the readability.
+- Every public method/function shall have a docstring.
+- Private method/function with either complicated or crucial logic shall have a docstring.
+- Every class shall have a docstring.
+
+### Python
+- Use type-hints, all functions/methods shall be type-annotated.
+- Omit docstring for __init__, if there is anything notable, add it to the class docstring.
+- Docstring format:
+
+```
+"""
+Brief explanation what the function does, side-effects and other important info.
+
+:param arg_name: argument description
+:param arg_name2: argument2 description
+:return: return value/s description
+:raises: in case the method/function raises any special exception
+"""
+```
 
 ## Current phase
 
-Phase 1 - FastAPI backend (not started)
+Phase 1 - FastAPI backend (done)
+Phase 2 - Browser Dashboard UI (not started)

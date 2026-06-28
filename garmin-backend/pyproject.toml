@@ -1,0 +1,24 @@
+[project]
+name = "garmin-backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.138.1",
+    "garminconnect>=0.3.6",
+    "python-dotenv>=1.2.2",
+    "uvicorn>=0.49.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "ruff>=0.15.20",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
