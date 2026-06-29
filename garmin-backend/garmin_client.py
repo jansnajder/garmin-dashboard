@@ -1,4 +1,5 @@
 import os
+import threading
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -7,6 +8,7 @@ from garminconnect import Garmin
 load_dotenv()
 
 _client: Garmin | None = None
+_lock = threading.Lock()
 TOKEN_PATH = str(Path.home() / ".garminconnect")
 
 
@@ -21,12 +23,25 @@ def get_client() -> Garmin:
     """
     global _client
 
-    if _client is None:
-        client = Garmin(
-            email=os.environ["GARMIN_EMAIL"],
-            password=os.environ["GARMIN_PASSWORD"],
-        )
-        client.login(TOKEN_PATH)
-        _client = client
+    with _lock:
+        if _client is None:
+            client = Garmin(
+                email=os.environ["GARMIN_EMAIL"],
+                password=os.environ["GARMIN_PASSWORD"],
+            )
+            client.login(TOKEN_PATH)
+            _client = client
 
     return _client
+
+
+def reset_client() -> None:
+    """
+    Force re-authentication on the next get_client() call.
+
+    Call this after a GarminConnectAuthenticationError to recover without a process restart.
+    """
+    global _client
+
+    with _lock:
+        _client = None

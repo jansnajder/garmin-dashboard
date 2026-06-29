@@ -36,76 +36,75 @@ Browser / Electron (renderer)  <-->  FastAPI (server)  <-->  python-garminconnec
 
 ---
 
-## Phase 1 - FastAPI Backend
+## Phase 1 - FastAPI Backend ✓
 
 **Goal:** A running HTTP server that returns real Garmin data, with a SQLite cache layer.
 
-### Steps
+### What was built
 
-1. Init Python project with `uv`
-   - `uv init garmin-backend`
-   - Add deps: `fastapi`, `uvicorn`, `garminconnect`, `python-dotenv`
+- `garmin-backend/cache.py` -- `Cache` class: SQLite-backed TTL cache, single table `(key, data, fetched_at)`, `get`/`set`/`clear` methods
+- `garmin-backend/garmin_client.py` -- `get_client()` singleton: lazy-init Garmin client, tokens persisted to `~/.garminconnect`
+- `garmin-backend/main.py` -- FastAPI app with a `fetch(key, fn)` helper that abstracts the cache-or-call pattern, keeping each endpoint a one-liner
 
-2. Garmin authentication
-   - First run: prompt for Garmin credentials, store OAuth tokens to a local file
-   - Subsequent runs: load tokens from file, refresh if expired
-   - Learn: how python-garminconnect handles OAuth token persistence
+**Endpoints:**
+```
+GET  /summary          - steps, calories, stress; body_battery as sampled list
+GET  /sleep-data       - sleep score, stage durations, HRV, SpO2
+GET  /heart-rate       - resting HR + intraday time-series (raw Garmin dict)
+GET  /hrv              - weekly avg, last night avg, status, nightly readings
+GET  /activities       - last 7 days; date range via ?start=&end=
+GET  /training-status  - training load + readiness score with factor breakdown
+POST /cache/clear      - delete all cache entries
+```
 
-3. SQLite cache layer
-   - Single table: `cache(endpoint TEXT PRIMARY KEY, data TEXT, fetched_at INTEGER)`
-   - On each API call: check cache first; return cached data if age < TTL (3600s)
-   - On miss: fetch from Garmin, write to cache, return data
-   - Learn: Python's built-in `sqlite3` module; no ORM needed here
+**Key implementation notes:**
+- `sqlite3.connect(..., check_same_thread=False)` -- required because FastAPI may dispatch requests across threads
+- Garmin client is a lazy singleton -- avoids auth overhead on every request, and defers the token load until the first actual call
+- `fetch(key, fn)` maps garminconnect exceptions to HTTP status codes: 429 rate limit, 401 auth failure, 503 connection error
+- Cache keys encode both endpoint and date (e.g. `summary:2026-06-28`) -- prevents stale cross-day hits on a long-running server
+- Date query param is aliased as `?date=` in the URL but named `date_str` in Python to avoid shadowing the stdlib `date` type
+- All endpoints return `Any` -- Garmin API responses are passed through untyped; no response models
 
-4. Define API endpoints
-   ```
-   GET  /summary          - today's steps, calories, stress, body battery
-   GET  /sleep-data       - last night's sleep score, stages, HRV
-   GET  /heart-rate       - resting HR, daily HR graph data
-   GET  /hrv              - HRV status and 5-day trend (Fenix 7 compatible)
-   GET  /activities       - recent activities (last 7 days)
-   GET  /training-status  - training load, training readiness
-   POST /cache/clear      - bust the cache manually (dev utility)
-   ```
-
-5. Run and test with curl / browser
+**Tooling added:**
+- `uv` for Python env, `ruff` for linting, `pre-commit` for hooks
 
 **Verify:** `curl http://localhost:8000/summary` returns real data. Second call returns same data instantly (from cache). `curl -X POST http://localhost:8000/cache/clear` resets it.
 
 ---
 
-## Phase 2 - Browser Dashboard UI
+## Phase 2 - Browser Dashboard UI ✓
 
 **Goal:** A functional, readable dashboard with charts -- running in a plain browser tab.
 
-FastAPI serves the frontend as static files (`StaticFiles` mount). Open `http://localhost:8000` in a browser.
+FastAPI serves the frontend via `app.frontend("/", directory="../frontend")`. Open `http://localhost:8000` in a browser.
 
-### Steps
+### What was built
 
-1. Mount static files in FastAPI
-   - `app.mount("/", StaticFiles(directory="frontend", html=True))`
-   - **Must be added last in `main.py`**, after all API routes -- the mount is greedy and will intercept API calls if placed first
-   - Learn: how FastAPI serves static content alongside API routes
+- `frontend/index.html` -- semantic layout: 5 stat cards, 3 chart canvases, activities table
+- `frontend/style.css` -- dark theme, CSS grid, shimmer skeleton loading state
+- `frontend/app.js` -- parallel data fetching via `Promise.allSettled`; one render function per section
+- `frontend/chart.umd.min.js` + `frontend/chartjs-adapter-date-fns.bundle.min.js` -- bundled locally
 
-2. Layout (`index.html`)
-   - CSS grid: top row = key stats cards (steps, sleep score, body battery, resting HR)
-   - Middle row = charts (HR over day, sleep stages, HRV trend)
-   - Bottom row = recent activities list
-   - Bundle Chart.js locally (`frontend/chart.umd.min.js`) -- no CDN
+**Stat cards (top row):** Steps (with goal), Sleep Score, Body Battery, Resting HR, HRV + status
 
-3. Stats cards
-   - Fetch `/summary`, `/sleep-data`, `/hrv`
-   - Render as simple number + label cards
+**Charts (middle row):**
+- Heart rate over the day (line, time axis) -- from `/heart-rate`; intraday `[[timestamp_ms, bpm]]` series
+- Sleep stages (horizontal stacked bar) -- from `/sleep-data`; deep/light/REM/awake in minutes
+- HRV trend (line + 7-day avg reference line) -- from `/hrv`; nightly readings
 
-4. Charts (Chart.js)
-   - Heart rate over the day (line chart) - from `/heart-rate`
-   - Sleep stages (bar/timeline chart) - from `/sleep-data`
-   - HRV trend (line chart, 5 days) - from `/hrv`
-   - Learn: Chart.js basics -- datasets, scales, tooltips
+**Activities table (bottom row):** date, name, duration, distance, avg HR, calories -- from `/activities`
 
-5. Activities list
-   - Fetch `/activities`
-   - Render as a simple table: date, type, duration, distance
+**Tooling added:**
+- `// @ts-check` + JSDoc in `app.js` -- type checking without a compiler
+- Prettier wired into pre-commit (`.js`/`.css`/`.html`) and `.claude/settings.json` hooks
+- `.prettierrc` -- single quotes, 120 char line width
+
+**Key implementation notes:**
+- `app.frontend()` (FastAPI built-in) is used instead of `app.mount(StaticFiles(...))` -- it checks API routes first automatically, so placement in `main.py` doesn't matter
+- Chart.js `time` axis requires the date-fns adapter; bundled as a second local file
+- `getEl(id)` helper asserts non-null on `getElementById` -- satisfies the type checker and catches HTML/JS mismatches early
+- Body battery requires flattening `bodyBatteryStatList` arrays across multiple time-window objects and sorting by `endGMT`
+- Heart rate intraday field name (`heartRateValues`) may vary by firmware -- first load logs the full response to console
 
 **Verify:** Dashboard shows real data at `http://localhost:8000`. Charts render correctly. Data matches Garmin Connect.
 
@@ -169,7 +168,7 @@ FastAPI serves the frontend as static files (`StaticFiles` mount). Open `http://
 | Phase | What you learn |
 |---|---|
 | 1 | FastAPI routing, async endpoints, Python OAuth token handling, sqlite3 |
-| 2 | StaticFiles in FastAPI, DOM manipulation from fetch data, Chart.js, CSS grid |
+| 2 | `app.frontend()` in FastAPI, DOM manipulation from fetch data, Chart.js, CSS grid, JSDoc + ts-check |
 | 3 | Electron architecture (main/renderer split), child process management, IPC security model |
 | 4 | Electron packaging, bundling a Python backend |
 

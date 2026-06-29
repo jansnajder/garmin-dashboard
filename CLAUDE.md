@@ -17,22 +17,23 @@ main.js             Electron entry point (Phase 3+)
 ## Dev
 
 ```bash
-# Backend
+# Backend + frontend
 cd garmin-backend
 uv run uvicorn main:app --reload --port 8000
+# Open http://localhost:8000
 
-# Lint (also runs automatically on every file edit)
+# Run all linters manually (also run automatically on every file edit via hooks)
 uv run --directory garmin-backend pre-commit run --all-files
-
-# Frontend - just open http://localhost:8000 in a browser (Phase 1-2)
 ```
 
 ## Key constraints
 
 - Python env managed by `uv` -- do not use pip directly
 - No JS build tooling -- plain HTML/CSS/JS only, no npm bundler, no JSX
-- Chart.js bundled locally in `frontend/` -- no CDN
+- Chart.js and chartjs-adapter-date-fns bundled locally in `frontend/` -- no CDN
 - SQLite cache TTL is 3600s per endpoint; `POST /cache/clear` busts it
+- Frontend served by `app.frontend("/", directory="../frontend")` in `main.py` (FastAPI built-in, not `StaticFiles`)
+- Hooks in `.claude/settings.json` run ruff on `.py` edits and Prettier on `.js`/`.css`/`.html` edits automatically
 
 ## Code style
 
@@ -50,7 +51,7 @@ uv run --directory garmin-backend pre-commit run --all-files
 - Omit docstring for __init__, if there is anything notable, add it to the class docstring.
 - Docstring format:
 
-```
+```python
 """
 Brief explanation what the function does, side-effects and other important info.
 
@@ -61,7 +62,25 @@ Brief explanation what the function does, side-effects and other important info.
 """
 ```
 
+### JavaScript
+
+- `// @ts-check` at the top of every JS file -- enables TypeScript's checker without a compiler
+- Use JSDoc for all public functions; format mirrors the Python docstring style:
+
+```js
+/**
+ * Brief explanation.
+ *
+ * @param {string} arg - description
+ * @returns {Promise<void>}
+ * @throws {Error} when ...
+ */
+```
+
+- Prettier handles formatting (single quotes, 120 char line width -- matches ruff)
+- Browser globals from `<script>` tags (e.g. Chart.js) must be accessed via `(/** @type {any} */ (window)).Chart` to satisfy the type checker
+
 ## Current phase
 
 Phase 1 - FastAPI backend (done)
-Phase 2 - Browser Dashboard UI (not started)
+Phase 2 - Browser Dashboard UI (done)

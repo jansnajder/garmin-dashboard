@@ -1,3 +1,4 @@
+import threading
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
@@ -5,15 +6,28 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query
 from garminconnect import (
     GarminConnectAuthenticationError,
-    GarminConnectConnectionError,
     GarminConnectTooManyRequestsError,
 )
 
 from cache import Cache
-from garmin_client import get_client
+from garmin_client import get_client, reset_client
 
 app = FastAPI()
 cache = Cache()
+
+app.frontend("/", directory="../frontend")
+
+_key_locks: dict[str, threading.Lock] = {}
+_key_locks_guard = threading.Lock()
+
+
+def _key_lock(key: str) -> threading.Lock:
+    """Return a per-key lock, creating it on first use."""
+    with _key_locks_guard:
+        if key not in _key_locks:
+            _key_locks[key] = threading.Lock()
+
+        return _key_locks[key]
 
 
 def today() -> str:
@@ -29,6 +43,9 @@ def fetch(key: str, fn: Callable[[], Any]) -> Any:
     """
     Return cached data for key, or call fn() to fetch it and populate the cache.
 
+    Uses per-key locking with double-checked caching to prevent concurrent cold-cache
+    requests from issuing duplicate Garmin API calls.
+
     :param key: cache key, should encode endpoint + date to avoid stale cross-day hits
     :param fn: callable that fetches fresh data from Garmin
     :return: data from cache or fresh fetch
@@ -39,20 +56,27 @@ def fetch(key: str, fn: Callable[[], Any]) -> Any:
     if found:
         return hit
 
-    try:
-        data = fn()
-    except GarminConnectTooManyRequestsError:
-        raise HTTPException(429, "Garmin rate limit - wait a few minutes")
-    except GarminConnectAuthenticationError:
-        raise HTTPException(401, "Garmin auth failed")
-    except GarminConnectConnectionError as e:
-        raise HTTPException(503, str(e))
-    except Exception as e:
-        raise HTTPException(503, str(e))
+    with _key_lock(key):
+        found, hit = cache.get(key)
 
-    cache.set(key, data)
+        if found:
+            return hit
 
-    return data
+        try:
+            data = fn()
+        except GarminConnectTooManyRequestsError:
+            raise HTTPException(429, "Garmin rate limit - wait a few minutes")
+        except GarminConnectAuthenticationError:
+            reset_client()
+            raise HTTPException(401, "Garmin auth failed")
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(503, str(e))
+
+        cache.set(key, data)
+
+        return data
 
 
 @app.get("/summary")
@@ -123,8 +147,9 @@ def activities(
     :return: list of Garmin activity dicts
     :raises HTTPException: 400 if start is after end
     """
-    end = end or today()
-    start = start or (date.today() - timedelta(days=7)).isoformat()
+    _today = today()
+    end = end or _today
+    start = start or (date.fromisoformat(_today) - timedelta(days=7)).isoformat()
 
     if start > end:
         raise HTTPException(400, "start must not be after end")
