@@ -25,7 +25,7 @@ FastAPI server that fetches Garmin health data and caches it locally in SQLite.
 | `GET /hrv` | HRV status |
 | `GET /activities` | Last 7 days of activities |
 | `GET /training-status` | Training load and readiness |
-| `GET /cache/clear` | Bust the SQLite cache |
+| `POST /cache/clear` | Bust the SQLite cache |
 
 All endpoints accept an optional `?date=YYYY-MM-DD` query parameter (default: today).
 Cache TTL is 3600s.
