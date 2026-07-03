@@ -2,7 +2,9 @@
 
 ## Goal
 
-A personal desktop application that fetches Garmin health/fitness data and displays it in a clean dashboard. Self-use only.
+A proof-of-concept desktop application that fetches Garmin health/fitness data and displays it in a simple dashboard. Self-use only.
+
+The goal of this PoC is to validate the full stack end-to-end -- FastAPI backend, browser-based frontend, Electron shell, and a packaged `.exe` installer. A full-scale dashboard will be built on top of this foundation once the PoC is complete.
 
 ## Architecture
 
@@ -134,32 +136,26 @@ FastAPI serves the frontend via `app.frontend("/", directory="../frontend")`. Op
 
 ---
 
-## Phase 4 - Polish
+## Phase 4 - Packaging
 
-**Goal:** App feels like a finished tool, not a dev prototype.
+**Goal:** A single `.exe` installer that bundles Electron + the Python backend. No Python or Node install required on the target machine.
 
 ### Steps
 
-1. First-run auth flow
-   - If no token file exists, show a login screen (email + password fields)
-   - On success, store tokens and proceed to dashboard
+1. Freeze the Python backend with PyInstaller
+   - Produce a self-contained executable from `garmin-backend/` (no Python required at runtime)
+   - Learn: PyInstaller spec files, hidden imports, handling C-extension deps
 
-2. Loading states and errors
-   - Show a spinner while data loads
-   - Show an error message if Garmin API is unreachable
+2. Wire the frozen backend into Electron
+   - `main.js` detects whether it is running packaged (`app.isPackaged`) and spawns either the PyInstaller binary or the dev `uvicorn` process accordingly
+   - Learn: `process.resourcesPath`, bundling native binaries as Electron extra resources
 
-3. Refresh button
-   - POSTs to `/cache/clear` then re-fetches all endpoints
+3. Package with `electron-builder`
+   - Produces a Windows `.exe` NSIS installer
+   - Include the PyInstaller output as an `extraResource`
+   - Learn: `electron-builder` config, NSIS installer basics
 
-4. Extend Garmin API coverage
-   - Phase 1 exposes 6 endpoints, a small subset of python-garminconnect (130+ methods)
-   - Wrap additional methods as cached HTTP endpoints on demand
-
-5. Packaging (optional)
-   - `electron-builder` to produce a `.exe` installer
-   - Bundle Python + FastAPI into the package (via PyInstaller)
-
-**Verify:** App works end-to-end from a cold start with no manual steps.
+**Verify:** Running the installer on a clean machine (no Python, no Node) opens the dashboard.
 
 ---
 
@@ -170,7 +166,7 @@ FastAPI serves the frontend via `app.frontend("/", directory="../frontend")`. Op
 | 1 | FastAPI routing, async endpoints, Python OAuth token handling, sqlite3 |
 | 2 | `app.frontend()` in FastAPI, DOM manipulation from fetch data, Chart.js, CSS grid, JSDoc + ts-check |
 | 3 | Electron architecture (main/renderer split), child process management, IPC security model |
-| 4 | Electron packaging, bundling a Python backend |
+| 4 | PyInstaller spec files and C-extension deps, `electron-builder` config, NSIS installer, bundling native binaries as Electron extra resources |
 
 ---
 

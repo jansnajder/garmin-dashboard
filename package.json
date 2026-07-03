@@ -1,0 +1,13 @@
+
+{
+  "name": "garmin-dashboard",
+  "version": "1.0.0",
+  "description": "Personal Garmin health dashboard",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^36.4.0"
+  }
+}
