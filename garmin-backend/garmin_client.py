@@ -17,17 +17,19 @@ def get_client() -> Garmin:
     Return the shared Garmin client, initializing and logging in on first call.
 
     Tokens are persisted to TOKEN_PATH so subsequent runs skip full re-authentication.
+    Credentials are read from the environment; when absent (e.g. a packaged build),
+    login falls back to the persisted token at TOKEN_PATH.
 
     :return: authenticated Garmin client instance
-    :raises KeyError: if GARMIN_EMAIL or GARMIN_PASSWORD are not set in the environment
+    :raises GarminConnectAuthenticationError: if no valid token exists and no credentials are set
     """
     global _client
 
     with _lock:
         if _client is None:
             client = Garmin(
-                email=os.environ["GARMIN_EMAIL"],
-                password=os.environ["GARMIN_PASSWORD"],
+                email=os.environ.get("GARMIN_EMAIL"),
+                password=os.environ.get("GARMIN_PASSWORD"),
             )
             client.login(TOKEN_PATH)
             _client = client
