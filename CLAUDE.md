@@ -84,3 +84,5 @@ Brief explanation what the function does, side-effects and other important info.
 
 Phase 1 - FastAPI backend (done)
 Phase 2 - Browser Dashboard UI (done)
+Phase 3 - Electron shell (done)
+Phase 4 - Packaging: PyInstaller + electron-builder NSIS installer (done)

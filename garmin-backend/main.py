@@ -11,11 +11,12 @@ from garminconnect import (
 
 from cache import Cache
 from garmin_client import get_client, reset_client
+from paths import cache_path, frontend_dir
 
 app = FastAPI()
-cache = Cache()
+cache = Cache(cache_path())
 
-app.frontend("/", directory="../frontend")
+app.frontend("/", directory=frontend_dir())
 
 _key_locks: dict[str, threading.Lock] = {}
 _key_locks_guard = threading.Lock()

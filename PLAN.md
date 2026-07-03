@@ -136,7 +136,7 @@ FastAPI serves the frontend via `app.frontend("/", directory="../frontend")`. Op
 
 ---
 
-## Phase 4 - Packaging
+## Phase 4 - Packaging ✓
 
 **Goal:** A single `.exe` installer that bundles Electron + the Python backend. No Python or Node install required on the target machine.
 
@@ -156,6 +156,24 @@ FastAPI serves the frontend via `app.frontend("/", directory="../frontend")`. Op
    - Learn: `electron-builder` config, NSIS installer basics
 
 **Verify:** Running the installer on a clean machine (no Python, no Node) opens the dashboard.
+
+### What was built
+
+- `garmin-backend/run_server.py` -- PyInstaller entry point; `uvicorn.run(app, ...)` with a static `from main import app` so the import graph is frozen (a `uvicorn main:app` CLI string cannot be)
+- `garmin-backend/paths.py` -- resolves the frontend dir (`sys._MEIPASS/frontend` when frozen, `../frontend` in dev) and a writable `cache.db` under `%LOCALAPPDATA%\GarminDashboard`
+- `garmin-backend/garmin_backend.spec` -- onedir freeze: `collect_submodules("uvicorn")`, `collect_all("curl_cffi")` (native `_wrapper.pyd`), `collect_data_files("certifi")`, and the frontend as bundled `datas`
+- `main.js` -- `startBackend()` branches on `app.isPackaged`: dev runs `uv run uvicorn`, packaged runs `process.resourcesPath/backend/garmin-backend.exe`; `before-quit` uses `taskkill /T /F` to kill the whole tree
+- `package.json` -- `electron-builder` config: NSIS target, per-user install, PyInstaller onedir shipped as an `extraResource` at `resources/backend`; `freeze`/`pack`/`dist` scripts
+
+**Credentials:** the packaged app ships **no** secrets. `get_client()` reads `GARMIN_EMAIL`/`GARMIN_PASSWORD` via `os.environ.get` (was `[]`), so when absent it falls back to the persisted `~/.garminconnect` token from a prior dev login. A machine with no token surfaces a 401 in the UI.
+
+**Key implementation notes:**
+- onedir (not onefile): no per-launch temp re-extraction of the native `_wrapper.pyd`; folds cleanly into `extraResources`
+- `upx=False` in the spec -- UPX corrupts the curl_cffi / libcurl DLLs
+- electron-builder on a non-elevated Windows shell needs `CSC_IDENTITY_AUTO_DISCOVERY=false` **and** `win.signAndEditExecutable: false` -- otherwise it tries to sign the bundled `.exe`, which extracts `winCodeSign` whose macOS symlinks fail without Administrator / Developer Mode
+- Windows Defender can transiently lock the freshly written `resources/app.asar` mid-build (`EnsureEmptyDir` fails); a retry wins the race, or add a Defender exclusion for the build dir
+
+**Verified:** the frozen backend serves real Garmin data standalone; the packaged Electron app spawns it from `resources/backend` and the dashboard loads every endpoint (`/summary`, `/heart-rate`, `/sleep-data`, `/hrv`, `/activities`) via the cached token; `npm run dist` produces `Garmin Dashboard Setup 1.0.0.exe`.
 
 ---
 

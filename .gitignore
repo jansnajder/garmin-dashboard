@@ -4,3 +4,10 @@ __pycache__/
 garmin-backend/cache.db
 .claude/settings.local.json
 node_modules/
+
+# Phase 4 build outputs
+garmin-backend/build/
+garmin-backend/dist/
+release/
+release-*/
+rel-inst*/

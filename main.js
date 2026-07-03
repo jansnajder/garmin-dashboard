@@ -2,7 +2,7 @@
 'use strict';
 
 const { app, BrowserWindow } = require('electron');
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 const http = require('http');
 const path = require('path');
 
@@ -12,20 +12,38 @@ const PORT = 8000;
 let backendProcess = null;
 
 /**
- * Spawn the FastAPI/uvicorn backend as a child process.
+ * Resolve how to launch the backend for the current mode.
  *
- * Uses `uv run` so no separate venv activation is needed. The process
- * inherits stdio so its logs appear in the Electron terminal.
+ * In dev (`app.isPackaged` false) it runs via `uv run uvicorn`. In a packaged
+ * build it runs the PyInstaller-frozen exe shipped under resources/backend.
+ *
+ * @returns {{cmd: string, args: string[], cwd: string}}
+ */
+function backendCommand() {
+  if (!app.isPackaged) {
+    return {
+      cmd: 'uv',
+      args: ['run', 'uvicorn', 'main:app', '--port', String(PORT)],
+      cwd: path.join(__dirname, 'garmin-backend'),
+    };
+  }
+
+  const exe = path.join(process.resourcesPath, 'backend', 'garmin-backend.exe');
+
+  return { cmd: exe, args: [], cwd: path.dirname(exe) };
+}
+
+/**
+ * Spawn the FastAPI backend as a child process.
+ *
+ * The process inherits stdio so its logs appear in the Electron terminal.
  */
 function startBackend() {
-  const backendDir = path.join(__dirname, 'garmin-backend');
+  const { cmd, args, cwd } = backendCommand();
 
-  backendProcess = spawn('uv', ['run', 'uvicorn', 'main:app', '--port', String(PORT)], {
-    cwd: backendDir,
+  backendProcess = spawn(cmd, args, {
+    cwd,
     stdio: 'inherit',
-    // On Windows, spawn a detached process group so we can signal the tree.
-    // Without this, only the `uv` launcher is killed; uvicorn keeps running.
-    detached: false,
   });
 
   backendProcess.on('error', (err) => {
@@ -111,13 +129,26 @@ app.whenReady().then(async () => {
 });
 
 // Kill the backend when the app is about to quit.
-// Note: on Windows, `backendProcess.kill()` terminates the `uv` launcher but
-// may leave the uvicorn subprocess running briefly. This is acceptable for the
-// PoC; Phase 4 switches to a PyInstaller binary which is a single process.
+// On Windows, `kill()` only signals the direct child (the `uv` launcher in dev),
+// orphaning uvicorn. `taskkill /T` terminates the whole process tree instead.
 app.on('before-quit', () => {
-  if (backendProcess) {
+  if (!backendProcess) {
+    return;
+  }
+
+  const pid = backendProcess.pid;
+
+  if (process.platform === 'win32' && pid) {
+    try {
+      execFileSync('taskkill', ['/pid', String(pid), '/T', '/F']);
+    } catch (_) {
+      /* already gone */
+    }
+  } else {
     backendProcess.kill();
   }
+
+  backendProcess = null;
 });
 
 app.on('window-all-closed', () => {
