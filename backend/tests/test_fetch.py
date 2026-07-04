@@ -7,13 +7,14 @@ from garminconnect import (
     GarminConnectTooManyRequestsError,
 )
 
-from app.core import deps
+from app.core import auth, deps
 
 
 @pytest.fixture
-def fetch_cache(cache, monkeypatch):
-    """Swap the module-level cache for a temp one so deps.fetch() can be called directly."""
+def fetch_cache(cache, manager, monkeypatch):
+    """Swap the module-level cache and account manager for temp ones so deps.fetch() can be called directly."""
     monkeypatch.setattr(deps, "cache", cache)
+    monkeypatch.setattr(auth, "manager", manager)
 
     return cache
 
@@ -56,9 +57,9 @@ def test_rate_limit_maps_to_429(fetch_cache):
     assert exc.value.status_code == 429
 
 
-def test_auth_error_maps_to_401_and_resets_client(fetch_cache, monkeypatch):
-    """Auth failure surfaces as HTTP 401 and drops the client singleton."""
-    monkeypatch.setattr(deps, "_client", object())
+def test_auth_error_maps_to_401_and_drops_account(fetch_cache, manager):
+    """Auth failure surfaces as HTTP 401 and drops the active account."""
+    manager.start_login("john.doe@example.com", "pw")
 
     def fn():
         raise GarminConnectAuthenticationError("expired")
@@ -67,7 +68,7 @@ def test_auth_error_maps_to_401_and_resets_client(fetch_cache, monkeypatch):
         deps.fetch("k", fn)
 
     assert exc.value.status_code == 401
-    assert deps._client is None
+    assert manager.active() is None
 
 
 def test_other_error_maps_to_503(fetch_cache):
