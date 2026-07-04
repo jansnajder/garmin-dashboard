@@ -95,4 +95,5 @@ Brief explanation what the function does, side-effects and other important info.
 
 Phases 1-4 - PoC: backend, dashboard UI, Electron shell, installer (done, see `docs/PLAN-POC.md`)
 Phase 5 - Backend restructure & test foundation (done)
-Phase 6 - Authentication & account management (next, see `PLAN.md`)
+Phase 6 - Authentication & account management (done)
+Phase 7 - Garmin data inventory (next, see `PLAN.md`)

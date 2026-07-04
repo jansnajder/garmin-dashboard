@@ -1,11 +1,8 @@
-import os
 import threading
 from collections.abc import Callable
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
 from fastapi import HTTPException
 from garminconnect import (
     Garmin,
@@ -13,14 +10,9 @@ from garminconnect import (
     GarminConnectTooManyRequestsError,
 )
 
+from app.core import auth
 from app.core.cache import Cache
 from app.core.paths import cache_path
-
-load_dotenv()
-
-_client: Garmin | None = None
-_lock = threading.Lock()
-TOKEN_PATH = str(Path.home() / ".garminconnect")
 
 cache = Cache(cache_path())
 
@@ -28,59 +20,19 @@ _key_locks: dict[str, threading.Lock] = {}
 _key_locks_guard = threading.Lock()
 
 
-def get_client() -> Garmin:
-    """
-    Return the shared Garmin client, initializing and logging in on first call.
-
-    Tokens are persisted to TOKEN_PATH so subsequent runs skip full re-authentication.
-    Credentials are read from the environment; when absent (e.g. a packaged build),
-    login falls back to the persisted token at TOKEN_PATH.
-
-    :return: authenticated Garmin client instance
-    :raises GarminConnectAuthenticationError: if no valid token exists and no credentials are set
-    """
-    global _client
-
-    with _lock:
-        if _client is None:
-            client = Garmin(
-                email=os.environ.get("GARMIN_EMAIL"),
-                password=os.environ.get("GARMIN_PASSWORD"),
-            )
-            client.login(TOKEN_PATH)
-            _client = client
-
-    return _client
-
-
-def reset_client() -> None:
-    """
-    Force re-authentication on the next get_client() call.
-
-    Call this after a GarminConnectAuthenticationError to recover without a process restart.
-    """
-    global _client
-
-    with _lock:
-        _client = None
-
-
 def get_garmin() -> Garmin:
     """
-    FastAPI dependency returning the shared authenticated Garmin client.
-
-    Lazy login happens here, during dependency resolution, so a login failure
-    must be mapped to 401 in this wrapper - it never reaches fetch()'s handlers.
+    FastAPI dependency returning the active account's Garmin client.
 
     :return: authenticated Garmin client instance
-    :raises HTTPException: 401 when Garmin authentication fails
+    :raises HTTPException: 401 when no account is active
     """
-    try:
-        return get_client()
-    except GarminConnectAuthenticationError:
-        reset_client()
+    client = auth.manager.active()
 
-        raise HTTPException(401, "Garmin auth failed")
+    if client is None:
+        raise HTTPException(401, "Not logged in")
+
+    return client
 
 
 def _key_lock(key: str) -> threading.Lock:
@@ -131,6 +83,9 @@ def fetch(key: str, fn: Callable[[], Any], *, last_date: str | None = None) -> A
     Uses per-key locking with double-checked caching to prevent concurrent cold-cache
     requests from issuing duplicate Garmin API calls. Data covering only days strictly
     older than yesterday is cached permanently; everything else falls under the TTL.
+    Keys are prefixed with the active account's slug so switching accounts cannot
+    serve another account's data. An auth failure mid-call drops the active account,
+    sending the frontend back to the login screen.
 
     :param key: cache key, should encode endpoint + date to avoid stale cross-day hits
     :param fn: callable that fetches fresh data from Garmin
@@ -138,6 +93,11 @@ def fetch(key: str, fn: Callable[[], Any], *, last_date: str | None = None) -> A
     :return: data from cache or fresh fetch
     :raises HTTPException: 429 on rate limit, 401 on auth failure, 503 on connection or other error
     """
+    slug = auth.manager.active_slug()
+
+    if slug is not None:
+        key = f"{slug}:{key}"
+
     found, hit = cache.get(key)
 
     if found:
@@ -154,7 +114,7 @@ def fetch(key: str, fn: Callable[[], Any], *, last_date: str | None = None) -> A
         except GarminConnectTooManyRequestsError:
             raise HTTPException(429, "Garmin rate limit - wait a few minutes")
         except GarminConnectAuthenticationError:
-            reset_client()
+            auth.manager.logout(forget=False)
             raise HTTPException(401, "Garmin auth failed")
         except HTTPException:
             raise

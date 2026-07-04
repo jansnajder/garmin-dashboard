@@ -4,16 +4,14 @@ FastAPI server that fetches Garmin health data and caches it locally in SQLite.
 
 ## Setup
 
-1. Copy `.env` and fill in your Garmin credentials:
-   ```
-   GARMIN_EMAIL=your@email.com
-   GARMIN_PASSWORD=yourpassword
-   ```
-
-2. Run:
+1. Run:
    ```
    uv run uvicorn app.main:app --reload --port 8000
    ```
+
+2. Log in once via Swagger UI at `http://localhost:8000/docs`: `POST /api/auth/login`
+   (then `POST /api/auth/mfa` if prompted). The account is remembered via its Garmin
+   token and auto-selected on the next start; passwords are never stored.
 
 3. Test:
    ```
@@ -24,6 +22,12 @@ FastAPI server that fetches Garmin health data and caches it locally in SQLite.
 
 | Endpoint | Description |
 |---|---|
+| `GET /api/auth/status` | Active account email, or null |
+| `GET /api/auth/accounts` | Remembered accounts |
+| `POST /api/auth/login` | Credential login (`needs_mfa` means MFA must follow) |
+| `POST /api/auth/mfa` | Complete a pending MFA login |
+| `POST /api/auth/select` | Activate a remembered account |
+| `POST /api/auth/logout` | Log out (`forget: true` also deletes the remembered account) |
 | `GET /api/summary` | Steps, calories, stress, body battery |
 | `GET /api/sleep-data` | Sleep score and stages |
 | `GET /api/heart-rate` | Resting HR and daily HR data |

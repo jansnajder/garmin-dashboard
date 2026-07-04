@@ -30,12 +30,14 @@ def frontend_dir() -> str:
     return str(Path(__file__).resolve().parents[3] / "frontend")
 
 
-def _data_dir() -> Path:
+def data_dir() -> Path:
     """
     Return the per-user app data directory as a Path, creating it if needed.
 
     Resolved by platformdirs; on Windows this is %LOCALAPPDATA%\\GarminDashboard
     (appauthor=False keeps it flat, without an author subdirectory).
+
+    :return: per-user app data directory
     """
     base = Path(user_data_dir("GarminDashboard", appauthor=False))
     base.mkdir(parents=True, exist_ok=True)
@@ -52,16 +54,4 @@ def cache_path() -> str:
 
     :return: absolute path to the cache database file
     """
-    return str(_data_dir() / "cache.db")
-
-
-def accounts_dir() -> str:
-    """
-    Return the directory for per-account token stores (used from Phase 6), creating it if needed.
-
-    :return: absolute path to the accounts directory
-    """
-    path = _data_dir() / "accounts"
-    path.mkdir(exist_ok=True)
-
-    return str(path)
+    return str(data_dir() / "cache.db")

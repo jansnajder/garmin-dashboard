@@ -8,7 +8,6 @@ dependencies = [
     "fastapi>=0.138.1",
     "garminconnect>=0.3.6",
     "platformdirs>=4.10.0",
-    "python-dotenv>=1.2.2",
     "uvicorn>=0.49.0",
 ]
 
