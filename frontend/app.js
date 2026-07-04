@@ -153,9 +153,9 @@ async function renderStats(date) {
   ['val-steps', 'val-sleep', 'val-bb', 'val-hr', 'val-hrv'].forEach(setLoading);
 
   const [summaryResult, sleepResult, hrvResult] = await Promise.allSettled([
-    fetchJSON(`/summary?date=${date}`),
-    fetchJSON(`/sleep-data?date=${date}`),
-    fetchJSON(`/hrv?date=${date}`),
+    fetchJSON(`/api/summary?date=${date}`),
+    fetchJSON(`/api/sleep-data?date=${date}`),
+    fetchJSON(`/api/hrv?date=${date}`),
   ]);
 
   if (summaryResult.status === 'fulfilled') {
@@ -207,7 +207,7 @@ async function renderHRChart(date) {
   let data;
 
   try {
-    data = await fetchJSON(`/heart-rate?date=${date}`);
+    data = await fetchJSON(`/api/heart-rate?date=${date}`);
   } catch (e) {
     showChartError('chart-hr', e instanceof Error ? e.message : String(e));
     return;
@@ -277,7 +277,7 @@ async function renderSleepChart(date) {
   let data;
 
   try {
-    data = await fetchJSON(`/sleep-data?date=${date}`);
+    data = await fetchJSON(`/api/sleep-data?date=${date}`);
   } catch (e) {
     showChartError('chart-sleep', e instanceof Error ? e.message : String(e));
     return;
@@ -343,7 +343,7 @@ async function renderHRVChart(date) {
   let data;
 
   try {
-    data = await fetchJSON(`/hrv?date=${date}`);
+    data = await fetchJSON(`/api/hrv?date=${date}`);
   } catch (e) {
     showChartError('chart-hrv', e instanceof Error ? e.message : String(e));
     return;
@@ -427,7 +427,7 @@ async function renderActivities() {
   let data;
 
   try {
-    data = await fetchJSON('/activities');
+    data = await fetchJSON('/api/activities');
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="6" class="error-text">${e instanceof Error ? e.message : String(e)}</td></tr>`;
     return;
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.textContent = 'Clearing cache...';
 
     try {
-      await fetch('/cache/clear', { method: 'POST' });
+      await fetch('/api/cache/clear', { method: 'POST' });
     } catch (_) {
       // cache clear failing is non-fatal
     }

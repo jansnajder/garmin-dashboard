@@ -10,7 +10,9 @@ in `docs/PLAN-POC.md`.
 ## Structure
 
 ```
-garmin-backend/     Python project (uv) - FastAPI server + SQLite cache + Garmin client
+backend/
+    app/            FastAPI package: main.py (assembly), core/ (cache, paths, deps), routers/
+    tests/          pytest suite (uv run pytest)
 frontend/           Legacy static HTML/CSS/JS from the PoC; becomes a React + Vite + TS app in Phase 8
 main.js             Electron entry point
 docs/               PoC plan archive, API report (Phase 7+)
@@ -20,12 +22,15 @@ docs/               PoC plan archive, API report (Phase 7+)
 
 ```bash
 # Backend + frontend
-cd garmin-backend
-uv run uvicorn main:app --reload --port 8000
+cd backend
+uv run uvicorn app.main:app --reload --port 8000
 # Open http://localhost:8000
 
+# Tests
+uv run --directory backend pytest
+
 # Run all linters manually (also run automatically on every file edit via hooks)
-uv run --directory garmin-backend pre-commit run --all-files
+uv run --directory backend pre-commit run --all-files
 ```
 
 ## Key constraints
@@ -34,9 +39,11 @@ uv run --directory garmin-backend pre-commit run --all-files
 - Frontend target stack (Phase 8+): React + Vite + TypeScript + ECharts; until then the legacy PoC
   frontend is plain HTML/CSS/JS with locally bundled Chart.js -- keep it working, don't extend it
 - No CDN dependencies at runtime -- everything bundled/installed locally
-- SQLite cache TTL is 3600s per endpoint; `POST /cache/clear` busts it. From Phase 5 on: entries for
-  past days are permanent (no TTL), and clear takes a `volatile`/`all` scope
-- Frontend served by `app.frontend("/", directory="../frontend")` in `main.py` (FastAPI built-in, not `StaticFiles`)
+- SQLite cache TTL is 3600s per endpoint; entries for days strictly older than yesterday are permanent
+  (no TTL). `POST /api/cache/clear` drops volatile entries by default, `?scope=all` drops everything
+- API routes live under `/api` (one router per domain in `app/routers/`); endpoints get the Garmin
+  client via `Depends(get_garmin)` from `app/core/deps.py`
+- Frontend served by `app.frontend("/", directory=...)` in `app/main.py` (FastAPI built-in, not `StaticFiles`)
 - Hooks in `.claude/settings.json` run ruff on `.py` edits and Prettier on `.js`/`.css`/`.html` edits automatically
 
 ## Code style
@@ -87,4 +94,5 @@ Brief explanation what the function does, side-effects and other important info.
 ## Current phase
 
 Phases 1-4 - PoC: backend, dashboard UI, Electron shell, installer (done, see `docs/PLAN-POC.md`)
-Phase 5 - Backend restructure & test foundation (next, see `PLAN.md`)
+Phase 5 - Backend restructure & test foundation (done)
+Phase 6 - Authentication & account management (next, see `PLAN.md`)

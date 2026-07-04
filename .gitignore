@@ -1,13 +1,13 @@
 .env
 __pycache__/
 .venv/
-garmin-backend/cache.db
+backend/cache.db
 .claude/settings.local.json
 node_modules/
 
 # Phase 4 build outputs
-garmin-backend/build/
-garmin-backend/dist/
+backend/build/
+backend/dist/
 release/
 release-*/
 rel-inst*/

@@ -79,10 +79,10 @@ cache retention policy that turns the cache into a passive history store. No vis
 
 ### Steps
 
-1. Restructure `garmin-backend/` into a package:
+1. Restructure `backend/` into a package:
 
    ```
-   garmin-backend/
+   backend/
        app/
            __init__.py
            main.py            app assembly: create FastAPI app, include routers, mount frontend
@@ -98,7 +98,7 @@ cache retention policy that turns the cache into a passive history store. No vis
            test_cache.py
            test_fetch.py
        run_server.py          updated import: from app.main import app
-       garmin_backend.spec    updated for the package layout
+       backend.spec           updated for the package layout
    ```
 
 2. Introduce dependency injection: endpoints declare `client: Garmin = Depends(get_garmin)` instead of
@@ -126,7 +126,7 @@ cache retention policy that turns the cache into a passive history store. No vis
      not broken
 
 6. Smoke-check packaging still works: `npm run freeze` produces a runnable
-   `garmin-backend/dist/garmin-backend/garmin-backend.exe`.
+   `backend/dist/backend/backend.exe`.
 
 **Verify:** `uv run pytest` green; dashboard at `http://localhost:8000` looks and behaves exactly as before;
 requesting a past date twice across a TTL boundary hits the cache the second time; frozen exe starts and
@@ -211,7 +211,7 @@ dashboard shows and which endpoints get built.
 
 ### Steps
 
-1. `garmin-backend/tools/probe.py` -- talks to the library directly, FastAPI not involved:
+1. `backend/tools/probe.py` -- talks to the library directly, FastAPI not involved:
    - Client authenticated from the Phase 6 token store (fallback: `~/.garminconnect`)
    - Discover methods by introspection (`get_*` on `Garmin`); resolve arguments from each signature:
      date-like params get today/yesterday, ranges the last 7 days, id-like params resolved from parent
@@ -388,7 +388,7 @@ This phase will be broken into per-view sub-phases once the specs exist.
 
 1. Build pipeline becomes three stages: `vite build` (frontend) -> PyInstaller freeze (bundles
    `frontend/dist` as `datas` instead of the raw `frontend/`) -> `electron-builder`; update the root
-   `package.json` scripts and `garmin_backend.spec` accordingly (the `app/` package, `tools/` excluded)
+   `package.json` scripts and `backend.spec` accordingly (the `app/` package, `tools/` excluded)
 2. Re-verify the frozen backend end-to-end: login flow (token dirs under `%LOCALAPPDATA%` must work
    frozen -- `paths.py` already targets it), all routers, cache
 3. `npm run dist`; install on a machine without Python/Node/tokens: login screen -> MFA -> dashboard
