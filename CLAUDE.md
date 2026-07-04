@@ -4,14 +4,16 @@
 
 Personal Garmin health dashboard. Electron desktop app wrapping a FastAPI backend that fetches and caches Garmin data.
 
-See `PLAN.md` for the full architecture and phase breakdown.
+See `PLAN.md` for the MVP architecture and phase breakdown. The completed PoC (Phases 1-4) is documented
+in `docs/PLAN-POC.md`.
 
 ## Structure
 
 ```
 garmin-backend/     Python project (uv) - FastAPI server + SQLite cache + Garmin client
-frontend/           Static HTML/CSS/JS - served by FastAPI, no build step
-main.js             Electron entry point (Phase 3+)
+frontend/           Legacy static HTML/CSS/JS from the PoC; becomes a React + Vite + TS app in Phase 8
+main.js             Electron entry point
+docs/               PoC plan archive, API report (Phase 7+)
 ```
 
 ## Dev
@@ -29,9 +31,11 @@ uv run --directory garmin-backend pre-commit run --all-files
 ## Key constraints
 
 - Python env managed by `uv` -- do not use pip directly
-- No JS build tooling -- plain HTML/CSS/JS only, no npm bundler, no JSX
-- Chart.js and chartjs-adapter-date-fns bundled locally in `frontend/` -- no CDN
-- SQLite cache TTL is 3600s per endpoint; `POST /cache/clear` busts it
+- Frontend target stack (Phase 8+): React + Vite + TypeScript + ECharts; until then the legacy PoC
+  frontend is plain HTML/CSS/JS with locally bundled Chart.js -- keep it working, don't extend it
+- No CDN dependencies at runtime -- everything bundled/installed locally
+- SQLite cache TTL is 3600s per endpoint; `POST /cache/clear` busts it. From Phase 5 on: entries for
+  past days are permanent (no TTL), and clear takes a `volatile`/`all` scope
 - Frontend served by `app.frontend("/", directory="../frontend")` in `main.py` (FastAPI built-in, not `StaticFiles`)
 - Hooks in `.claude/settings.json` run ruff on `.py` edits and Prettier on `.js`/`.css`/`.html` edits automatically
 
@@ -82,7 +86,5 @@ Brief explanation what the function does, side-effects and other important info.
 
 ## Current phase
 
-Phase 1 - FastAPI backend (done)
-Phase 2 - Browser Dashboard UI (done)
-Phase 3 - Electron shell (done)
-Phase 4 - Packaging: PyInstaller + electron-builder NSIS installer (done)
+Phases 1-4 - PoC: backend, dashboard UI, Electron shell, installer (done, see `docs/PLAN-POC.md`)
+Phase 5 - Backend restructure & test foundation (next, see `PLAN.md`)
