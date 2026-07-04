@@ -35,6 +35,28 @@ def get_garmin() -> Garmin:
     return client
 
 
+def _scoped(key: str) -> str:
+    """Prefix key with the active account's slug, when one is active."""
+    slug = auth.manager.active_slug()
+
+    if slug is not None:
+        return f"{slug}:{key}"
+
+    return key
+
+
+def cached(key: str) -> bool:
+    """
+    Return whether key has a fresh cache entry for the active account.
+
+    :param key: unscoped cache key
+    :return: True when a fresh (permanent or unexpired volatile) entry exists
+    """
+    found, _ = cache.get(_scoped(key))
+
+    return found
+
+
 def _key_lock(key: str) -> threading.Lock:
     """Return a per-key lock, creating it on first use."""
     with _key_locks_guard:
@@ -93,10 +115,7 @@ def fetch(key: str, fn: Callable[[], Any], *, last_date: str | None = None) -> A
     :return: data from cache or fresh fetch
     :raises HTTPException: 429 on rate limit, 401 on auth failure, 503 on connection or other error
     """
-    slug = auth.manager.active_slug()
-
-    if slug is not None:
-        key = f"{slug}:{key}"
+    key = _scoped(key)
 
     found, hit = cache.get(key)
 

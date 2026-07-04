@@ -369,6 +369,10 @@ When a view needs a method, its endpoint goes into:
 The PoC composite endpoints (`/api/summary`, `/api/training-status`) stay in `dashboard.py` untyped
 until the Today view slice retypes or replaces them.
 
+Auto-capture (see Backlog, done) already writes the cache keys `summary:{d}`, `sleep-data:{d}`,
+`heart-rate:{d}`, `hrv:{d}`, `stress:{d}` (get_all_day_stress) and `steps:{d}` (get_steps_data);
+the wellness endpoints for these methods must reuse those keys so UI reads hit the archive.
+
 ### Expected views
 
 One route/view each: Today (ported in Phase 8), Sleep, HRV & Training, Activities (list + detail),
@@ -413,7 +417,7 @@ both (the shell to render into, the report to know what to render).
 
 Accepted features outside the phase sequence, ordered by priority. Pull one in when its slot opens.
 
-### Auto-capture (priority: high) -- slot: with Phase 6 or immediately after it
+### Auto-capture (done 2026-07-04)
 
 A background job that archives every finished day into the permanent cache, so history accumulates
 even for days and endpoints nobody opened in the UI. Turns future trend views into instant local
@@ -430,6 +434,11 @@ reads and makes the archive survive a Garmin API break or account loss.
   it stopped. No retry logic, no alerting.
 - Tests: fake client + preseeded cache -- catch-up stops at the first known day, respects the bound,
   does nothing without an active account
+
+Implemented in `app/core/capture.py`. One deviation: the walk starts at today-2, not yesterday --
+yesterday sits in the volatile grace window, so capturing it would burn API calls on an entry that
+expires within the TTL and could falsely stop the catch-up. While no account is active the loop
+re-checks every 15 minutes instead of daily, so a login later in the day still gets captured.
 
 ### GPX course upload (priority: medium) -- slot: post-MVP, first write operation
 
