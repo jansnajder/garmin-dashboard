@@ -3,6 +3,8 @@
 import sys
 from pathlib import Path
 
+from platformdirs import user_data_dir
+
 
 def is_frozen() -> bool:
     """
@@ -18,14 +20,27 @@ def frontend_dir() -> str:
     Return the absolute path to the frontend directory in either mode.
 
     Frozen builds unpack bundled data under sys._MEIPASS; dev runs read the
-    sibling frontend/ folder next to the backend package.
+    frontend/ folder at the repo root, next to the backend project.
 
     :return: absolute path to the frontend directory
     """
     if is_frozen():
         return str(Path(sys._MEIPASS) / "frontend")
 
-    return str(Path(__file__).resolve().parent.parent / "frontend")
+    return str(Path(__file__).resolve().parents[3] / "frontend")
+
+
+def _data_dir() -> Path:
+    """
+    Return the per-user app data directory as a Path, creating it if needed.
+
+    Resolved by platformdirs; on Windows this is %LOCALAPPDATA%\\GarminDashboard
+    (appauthor=False keeps it flat, without an author subdirectory).
+    """
+    base = Path(user_data_dir("GarminDashboard", appauthor=False))
+    base.mkdir(parents=True, exist_ok=True)
+
+    return base
 
 
 def cache_path() -> str:
@@ -37,7 +52,16 @@ def cache_path() -> str:
 
     :return: absolute path to the cache database file
     """
-    base = Path.home() / "AppData" / "Local" / "GarminDashboard"
-    base.mkdir(parents=True, exist_ok=True)
+    return str(_data_dir() / "cache.db")
 
-    return str(base / "cache.db")
+
+def accounts_dir() -> str:
+    """
+    Return the directory for per-account token stores (used from Phase 6), creating it if needed.
+
+    :return: absolute path to the accounts directory
+    """
+    path = _data_dir() / "accounts"
+    path.mkdir(exist_ok=True)
+
+    return str(path)

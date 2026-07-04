@@ -12,7 +12,7 @@
           {
             "type": "command",
             "shell": "powershell",
-            "command": "$j = [Console]::In.ReadToEnd() | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -match '\\.py$') { uv run --directory garmin-backend ruff check --fix $f }"
+            "command": "$j = [Console]::In.ReadToEnd() | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -match '\\.py$') { uv run --directory backend ruff check --fix $f }"
           },
           {
             "type": "command",

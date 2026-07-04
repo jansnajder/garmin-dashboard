@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "freeze": "cd garmin-backend && uv run pyinstaller garmin_backend.spec --noconfirm",
+    "freeze": "cd backend && uv run pyinstaller backend.spec --noconfirm",
     "pack": "npm run freeze && electron-builder --dir",
     "dist": "npm run freeze && electron-builder"
   },
@@ -25,7 +25,7 @@
     ],
     "extraResources": [
       {
-        "from": "garmin-backend/dist/garmin-backend",
+        "from": "backend/dist/backend",
         "to": "backend",
         "filter": [
           "**/*"

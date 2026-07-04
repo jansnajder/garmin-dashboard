@@ -23,12 +23,12 @@ function backendCommand() {
   if (!app.isPackaged) {
     return {
       cmd: 'uv',
-      args: ['run', 'uvicorn', 'main:app', '--port', String(PORT)],
-      cwd: path.join(__dirname, 'garmin-backend'),
+      args: ['run', 'uvicorn', 'app.main:app', '--port', String(PORT)],
+      cwd: path.join(__dirname, 'backend'),
     };
   }
 
-  const exe = path.join(process.resourcesPath, 'backend', 'garmin-backend.exe');
+  const exe = path.join(process.resourcesPath, 'backend', 'backend.exe');
 
   return { cmd: exe, args: [], cwd: path.dirname(exe) };
 }

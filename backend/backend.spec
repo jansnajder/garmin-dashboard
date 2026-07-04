@@ -32,7 +32,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="garmin-backend",
+    name="backend",
     console=True,  # keep console during bring-up; flip to False for final installer
 )
 coll = COLLECT(
@@ -41,5 +41,5 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,  # UPX corrupts DLLs
-    name="garmin-backend",
+    name="backend",
 )
