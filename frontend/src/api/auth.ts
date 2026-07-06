@@ -65,3 +65,16 @@ export function useLogout() {
     },
   });
 }
+
+/** Delete a remembered account and its stored tokens by slug. */
+export function useForgetAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (slug: string) => postJSON<StatusResult>('/api/auth/forget', { slug }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'accounts'] });
+      void queryClient.invalidateQueries({ queryKey: ['auth', 'status'] });
+    },
+  });
+}

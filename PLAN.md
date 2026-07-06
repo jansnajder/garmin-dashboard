@@ -313,6 +313,70 @@ machine; theme toggles, restyles charts, and survives restart; refresh visibly r
 
 ---
 
+## Phase 8.5 - Frontend Shell Rework (done)
+
+**Goal:** Rework the Phase 8 shell to match the design sketches in `docs/frontend-design/general/` and
+strip it back to a clean shell with empty section views, ready for Phase 9 to fill in. Only the shell's
+own controls are wired; section content is deferred.
+
+### Information architecture
+
+The single Today route is replaced by the design's menu: Profile, Home, Activities, Health, Performance,
+Statistics. Each is a real route that highlights the active item and renders an empty `PlaceholderView`
+(the section name faintly centered); Phase 9 swaps in the real views one entry at a time. `routes.tsx`
+stays the single source of truth (a `profileItem`, the `navItems`, and the flat route list built from
+both).
+
+### Shell layout & behavior
+
+- **Collapsible sidebar** (`Layout` owns a `localStorage`-persisted `collapsed` state): full-height on
+  the left with the profile avatar on top, the section links, then a bottom group of "Change account"
+  and the collapse/expand toggle. Collapsed shows icons only; expanded shows icon + label. The width
+  animates with a simple eased (non-linear) transition and the labels fade with it; the toggle chevron
+  swaps instantly (no crossfade). The nav list is the flexible/scrollable middle so the bottom controls
+  stay pinned and visible on short windows.
+- **Topbar sits beside the menu**, not above it (grid `'nav topbar' 'nav content'`, sidebar spans both
+  rows): back button on the left (placeholder, not wired yet), icon-only Refresh (spins while fetching)
+  and Theme (sun/moon) on the right.
+- **Icons:** `lucide-react` (bundled via npm, not a CDN).
+- **Only four controls are functional this phase:** Change account, Collapse/Expand, Refresh, Theme.
+  The back button, Profile, and the section content are placeholders.
+
+### Cleanup
+
+- Deleted the Today view (`features/today/`) and the ECharts wrapper (`charts/`), and dropped the
+  `echarts` dependency. The wrapper is re-added in Phase 9 when the first real chart lands (Phase 8
+  step 7's ported Today view was thrown away here by design).
+- Trimmed `api/hooks.ts` and `api/types.ts` to auth-only (the Today data hooks and response types are
+  gone; `useAuthStatus`, `useAccounts`, `AccountSummary`, `AuthStatus` stay).
+- Added the CSS resets the scaffold lacked: `box-sizing: border-box` globally and `body { margin: 0 }`
+  (without them the `100vh` shell overflowed and clipped the collapse toggle).
+- Applied the sketch dark palette (`#090A1B` bg, `#2D3766` borders, `#27B7FF` accent) as the dark theme
+  and collapsed the multi-accent vars to a single `--accent`; light theme keeps neutral values.
+
+### Auth / login UX
+
+- **Merged login + change-account screen.** The login screen is one view: an email/password form with
+  the remembered accounts listed beneath it. "Change account" in the sidebar calls `logout(forget=false)`,
+  which drops to exactly this screen. Selecting an account re-authenticates from its token; an expired
+  token prefills the email for a fresh password entry.
+- **Per-account delete.** Each remembered account has a trash button; new endpoint
+  `POST /api/auth/forget { slug }` (backed by `AccountManager.forget(slug)`) deletes that account's
+  `accounts.json` entry and token dir whether or not it is active.
+- **MFA escape.** The MFA step has a Back button (returns to the login screen, clearing code and
+  password) so a wrong password or unwanted MFA challenge is no longer a dead end.
+- **Bug fix:** `GET /api/auth/accounts` returned 500 when an account had a null `display_name` (a partial
+  login can leave one); the response type is widened to `list[dict[str, str | None]]`.
+
+**Verify:** `npm run build` + `oxlint` clean; backend `uv run pytest tests/test_auth.py` green (adds
+forget-by-slug, forget-active, forget-unknown, and endpoint coverage). Driven in a headless browser:
+shell renders with the collapsible sidebar (state survives reload), the topbar sits beside the menu,
+theme toggles and persists, refresh spins and refetches, each nav item routes to its empty placeholder,
+and the merged login screen shows the credentials form with the remembered-account list (select, delete,
+and MFA-back paths all exercised).
+
+---
+
 ## Phase 9 - Dashboard Views & View-Driven API
 
 **Goal:** Fill the shell with the actual Garmin Connect replacement views, growing the backend API

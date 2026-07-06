@@ -47,7 +47,7 @@
 
 .submit {
   width: 100%;
-  background: var(--accent-blue);
+  background: var(--accent);
   color: var(--text);
   border: none;
   border-radius: 6px;
@@ -62,17 +62,54 @@
   cursor: default;
 }
 
+.back {
+  width: 100%;
+  margin-top: 10px;
+  background: none;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.back:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.accountsHeading {
+  margin: 20px 0 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
 .accountList {
   list-style: none;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
+  margin: 0;
+  padding: 0;
+}
+
+.accountRow {
+  display: flex;
+  gap: 8px;
 }
 
 .accountButton {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: var(--surface-alt);
   color: var(--text);
   border: 1px solid var(--border);
@@ -86,12 +123,26 @@
   background: var(--border);
 }
 
-.newAccount {
-  width: 100%;
-  background: none;
+.deleteAccount {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--surface-alt);
   color: var(--text-muted);
-  border: none;
-  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 10px;
   cursor: pointer;
-  text-decoration: underline;
+}
+
+.deleteAccount:hover {
+  background: var(--accent-red);
+  color: #ffffff;
+  border-color: var(--accent-red);
+}
+
+.deleteAccount:disabled {
+  opacity: 0.5;
+  cursor: default;
 }

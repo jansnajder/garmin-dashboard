@@ -44,7 +44,7 @@ class AccountManager:
         self._pending: Garmin | None = None
         self._pending_email: str | None = None
 
-    def list_accounts(self) -> list[dict[str, str]]:
+    def list_accounts(self) -> list[dict[str, str | None]]:
         """
         Return the remembered accounts from accounts.json.
 
@@ -141,9 +141,26 @@ class AccountManager:
             self._active_slug = None
 
             if forget and slug is not None:
-                accounts = [a for a in self._load_accounts() if a["slug"] != slug]
-                self._save_accounts(accounts)
-                shutil.rmtree(self._data_dir() / "accounts" / slug, ignore_errors=True)
+                self._delete_account(slug)
+
+    def forget(self, slug: str) -> None:
+        """
+        Delete a remembered account and its stored tokens, active or not.
+
+        :param slug: slug of the account to delete; unknown slugs are a no-op
+        """
+        with self._lock:
+            if self._active_slug == slug:
+                self._active = None
+                self._active_slug = None
+
+            self._delete_account(slug)
+
+    def _delete_account(self, slug: str) -> None:
+        """Remove a remembered account's accounts.json entry and its token directory."""
+        accounts = [a for a in self._load_accounts() if a["slug"] != slug]
+        self._save_accounts(accounts)
+        shutil.rmtree(self._data_dir() / "accounts" / slug, ignore_errors=True)
 
     def active(self) -> Garmin | None:
         """
@@ -255,13 +272,13 @@ class AccountManager:
     def _token_dir(self, slug: str) -> Path:
         return self._data_dir() / "accounts" / slug / "tokens"
 
-    def _load_accounts(self) -> list[dict[str, str]]:
+    def _load_accounts(self) -> list[dict[str, str | None]]:
         try:
             return json.loads(self._accounts_file().read_text())
         except FileNotFoundError:
             return []
 
-    def _save_accounts(self, accounts: list[dict[str, str]]) -> None:
+    def _save_accounts(self, accounts: list[dict[str, str | None]]) -> None:
         file = self._accounts_file()
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text(json.dumps(accounts, indent=2))

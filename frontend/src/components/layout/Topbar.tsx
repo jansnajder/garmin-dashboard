@@ -1,38 +1,34 @@
-import { useState } from 'react';
-
-import { useLogout } from '../../api/auth';
-import { useAuthStatus } from '../../api/hooks';
 import { useRefresh } from '../../hooks/useRefresh';
+import BackIcon from '../../assets/icons/back.svg?react';
+import DarkModeIcon from '../../assets/icons/dark_mode.svg?react';
+import LightModeIcon from '../../assets/icons/light_mode.svg?react';
+import RefreshIcon from '../../assets/icons/refresh.svg?react';
 import { useTheme } from '../../theme/useTheme';
 import styles from './Topbar.module.css';
 
-/** Refresh + theme controls, and a user menu with logout/logout+forget. */
+/** Back button (left) plus icon-only refresh and theme controls (right). */
 export function Topbar() {
-  const { data: status } = useAuthStatus();
   const { theme, toggleTheme } = useTheme();
   const { refresh, isRefreshing } = useRefresh();
-  const logout = useLogout();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className={styles.bar}>
-      <button className={styles.button} onClick={refresh} disabled={isRefreshing}>
-        {isRefreshing ? 'Refreshing...' : 'Refresh'}
+      <button type="button" className={styles.button} title="Back">
+        <BackIcon width={20} height={20} />
       </button>
-      <button className={styles.button} onClick={toggleTheme}>
-        {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-      </button>
-      <div className={styles.userMenu}>
-        <span className={styles.email}>{status?.active}</span>
-        <button className={styles.button} onClick={() => setMenuOpen((v) => !v)}>
-          Account
+
+      <div className={styles.controls}>
+        <button type="button" className={styles.button} onClick={refresh} disabled={isRefreshing} title="Refresh">
+          <RefreshIcon className={isRefreshing ? styles.spin : ''} width={20} height={20} />
         </button>
-        {menuOpen && (
-          <div className={styles.menuPanel}>
-            <button onClick={() => logout.mutate(false)}>Log out</button>
-            <button onClick={() => logout.mutate(true)}>Log out &amp; forget account</button>
-          </div>
-        )}
+        <button
+          type="button"
+          className={styles.button}
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? <LightModeIcon width={20} height={20} /> : <DarkModeIcon width={20} height={20} />}
+        </button>
       </div>
     </div>
   );

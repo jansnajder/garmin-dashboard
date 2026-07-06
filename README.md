@@ -18,7 +18,7 @@ Electron desktop app wrapping a FastAPI backend that fetches data via
 backend/            Python project (uv) - FastAPI server, SQLite cache, Garmin client
     app/            the FastAPI package: main.py (assembly), core/, routers/
     tests/          pytest suite
-frontend/           web frontend served by the backend (PoC vanilla JS, React rewrite planned)
+frontend/           React + Vite + TypeScript app, served by the backend in production (builds to frontend/dist)
 main.js             Electron entry point
 PLAN.md             MVP roadmap and architecture
 docs/               PoC plan archive
@@ -27,12 +27,23 @@ docs/               PoC plan archive
 ### Everyday commands
 
 ```bash
-# Install the Electron/packaging dependencies (once)
+# Install dependencies (once) - root and frontend are separate npm packages,
+# frontend is NOT an npm workspace, so both installs are required
 npm install
+cd frontend && npm install && cd ..
 
-# Backend + frontend in the browser (http://localhost:8000, --reload picks up code changes)
-cd backend
-uv run uvicorn app.main:app --reload --port 8000
+# Full dev loop: backend + Vite dev server + Electron (HMR), via concurrently
+npm run dev
+
+# Backend + frontend, no Electron: uvicorn + Vite dev server in separate terminals,
+# then open http://localhost:5173 (Vite proxies /api to :8000)
+cd backend && uv run uvicorn app.main:app --reload --port 8000
+cd frontend && npm run dev
+
+# Production-equivalent: build the frontend, then serve it from FastAPI alone
+cd frontend && npm run build
+cd backend && uv run uvicorn app.main:app --port 8000
+# Open http://localhost:8000
 
 # Backend tests
 uv run --directory backend pytest
