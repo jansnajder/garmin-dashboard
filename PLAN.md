@@ -205,7 +205,7 @@ auto-selects the remembered account, logout+forget wipes tokens and returns to t
 
 ## Phase 7 - Garmin Data Inventory
 
-**Goal:** Know what every `get_*` method of `garminconnect.Garmin` (0.3.6: 96 methods) actually returns
+**Goal:** Know what every `get_*` method of `garminconnect.Garmin` (0.3.6: 94 methods) actually returns
 for the real watches, without wrapping anything in HTTP. The report is the input for deciding what the
 dashboard shows and which endpoints get built.
 
@@ -228,7 +228,7 @@ dashboard shows and which endpoints get built.
 3. Read the report and pick what the dashboard should show -- it feeds directly into the Phase 9
    view specs
 
-**Verify:** `docs/api-report.md` committed with a status for all 96 methods; regenerating the report
+**Verify:** `docs/api-report.md` committed with a status for all 94 methods; regenerating the report
 works offline from the snapshots.
 
 ---

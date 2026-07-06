@@ -11,3 +11,6 @@ backend/dist/
 release/
 release-*/
 rel-inst*/
+
+# Phase 7 probe snapshots - contain personal health data
+backend/tools/snapshots/

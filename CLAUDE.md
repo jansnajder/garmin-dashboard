@@ -12,10 +12,12 @@ in `docs/PLAN-POC.md`.
 ```
 backend/
     app/            FastAPI package: main.py (assembly), core/ (cache, paths, deps), routers/
+    tools/          Phase 7 API inventory: probe.py (hits Garmin), report.py (offline docs/api-report.md
+                    generator), resolve.py, router_map.py; tools/snapshots/ is gitignored (personal data)
     tests/          pytest suite (uv run pytest)
 frontend/           Legacy static HTML/CSS/JS from the PoC; becomes a React + Vite + TS app in Phase 8
 main.js             Electron entry point
-docs/               PoC plan archive, API report (Phase 7+)
+docs/               PoC plan archive, API inventory report (docs/api-report.md, Phase 7)
 ```
 
 ## Dev
@@ -97,4 +99,5 @@ Phases 1-4 - PoC: backend, dashboard UI, Electron shell, installer (done, see `d
 Phase 5 - Backend restructure & test foundation (done)
 Phase 6 - Authentication & account management (done)
 Backlog: Auto-capture - background archival of finished days into the permanent cache (done)
-Phase 7 - Garmin data inventory (next, see `PLAN.md`)
+Phase 7 - Garmin data inventory (done, see `docs/api-report.md`)
+Phase 8 - Frontend rewrite: React + Vite scaffold, shell, theming, refresh (next, see `PLAN.md`)
