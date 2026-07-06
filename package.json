@@ -5,11 +5,13 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "dev": "concurrently -n frontend,electron -c blue,green --kill-others-on-fail \"npm --prefix frontend run dev\" \"npm run start\"",
     "freeze": "cd backend && uv run pyinstaller backend.spec --noconfirm",
     "pack": "npm run freeze && electron-builder --dir",
     "dist": "npm run freeze && electron-builder"
   },
   "devDependencies": {
+    "concurrently": "^10.0.3",
     "electron": "^36.4.0",
     "electron-builder": "^25.1.8"
   },

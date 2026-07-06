@@ -12,5 +12,8 @@ release/
 release-*/
 rel-inst*/
 
+# Phase 8 frontend build output
+frontend/dist/
+
 # Phase 7 probe snapshots - contain personal health data
 backend/tools/snapshots/

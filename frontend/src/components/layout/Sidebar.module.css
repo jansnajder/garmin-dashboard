@@ -1,0 +1,25 @@
+.nav {
+  height: 100%;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 12px 0;
+}
+
+.link {
+  display: block;
+  padding: 10px 20px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.link:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.linkActive {
+  color: var(--text);
+  background: var(--surface-alt);
+  border-left: 2px solid var(--accent-blue);
+}

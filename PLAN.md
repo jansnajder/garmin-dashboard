@@ -272,9 +272,9 @@ the first view.
 
    ```
    +--------------------------------------------------+
-   | logo/user        [refresh] [theme]  <- topbar    |
-   +----------+---------------------------------------+
-   |  menu    |                                       |
+   |  Profile |       [refresh] [theme]  <- topbar    |
+   |  Home    |---------------------------------------+
+   |  Stats   |                                       |
    |  Today   |     view content                      |
    |  Sleep   |     (graphs / widgets)                |
    |  ...     |                                       |
