@@ -1,15 +1,19 @@
 // @ts-check
 'use strict';
 
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const { spawn, execFileSync } = require('child_process');
 const http = require('http');
 const path = require('path');
 
 const PORT = 8000;
+const VITE_DEV_SERVER_URL = 'http://localhost:5173';
 
 /** @type {import('child_process').ChildProcess | null} */
 let backendProcess = null;
+
+/** @type {import('electron').BrowserWindow | null} */
+let mainWindow = null;
 
 /**
  * Resolve how to launch the backend for the current mode.
@@ -57,25 +61,26 @@ function startBackend() {
 }
 
 /**
- * Poll `http://localhost:{PORT}` until the server accepts a connection.
+ * Poll a URL until it accepts a connection.
  *
+ * @param {string} url - URL to probe.
  * @param {number} [timeoutMs=30000] - Give up after this many milliseconds.
  * @returns {Promise<void>}
- * @throws {Error} when the server does not start within the timeout.
+ * @throws {Error} when the URL does not respond within the timeout.
  */
-function waitForBackend(timeoutMs = 30000) {
+function waitForUrl(url, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
 
     function probe() {
-      const req = http.get(`http://localhost:${PORT}/`, (res) => {
+      const req = http.get(url, (res) => {
         res.resume();
         resolve();
       });
 
       req.on('error', () => {
         if (Date.now() >= deadline) {
-          reject(new Error(`Backend did not start within ${timeoutMs}ms`));
+          reject(new Error(`${url} did not respond within ${timeoutMs}ms`));
           return;
         }
 
@@ -92,6 +97,15 @@ function waitForBackend(timeoutMs = 30000) {
 /**
  * Create and show the main application window.
  *
+ * Loads the Vite dev server in dev (for HMR) and the FastAPI-served build in
+ * packaged mode - same localhost-only loading strategy either way. The native
+ * title bar is hidden (`titleBarStyle: 'hidden'`) but its minimize/maximize/
+ * close buttons still render via `titleBarOverlay` -- real Windows caption
+ * buttons drawn by the OS, not custom SVGs. The renderer only draws the
+ * draggable strip and app title behind them (see TitleBar.tsx) and pushes
+ * overlay colors through `setTitleBarOverlay` so the buttons track the app's
+ * light/dark theme.
+ *
  * Security notes:
  *   - nodeIntegration: false  -- renderer cannot call Node APIs directly
  *   - contextIsolation: true  -- renderer's JS and any preload run in separate
@@ -101,24 +115,46 @@ function waitForBackend(timeoutMs = 30000) {
  * Phase 4 when the app is packaged and distributed.
  */
 function createWindow() {
-  const win = new BrowserWindow({
+  Menu.setApplicationMenu(null);
+
+  mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
+    minWidth: 900,
+    minHeight: 600,
     title: 'Garmin Dashboard',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#090a1b',
+      symbolColor: '#a2a2a2',
+      height: 30,
+    },
+    backgroundColor: '#0e1126',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  win.loadURL(`http://localhost:${PORT}`);
+  mainWindow.loadURL(app.isPackaged ? `http://localhost:${PORT}` : VITE_DEV_SERVER_URL);
 }
+
+// Lets the renderer's theme toggle restyle the native titlebar overlay buttons
+// to match (see TitleBar.tsx); Windows/Linux only, no-ops elsewhere.
+ipcMain.on('window:set-titlebar-overlay', (_event, overlay) => mainWindow?.setTitleBarOverlay(overlay));
 
 app.whenReady().then(async () => {
   startBackend();
 
   try {
-    await waitForBackend();
+    // Probe an API route, not "/" -- "/" is the frontend static mount, which
+    // throws until `frontend/dist` exists (i.e. until `npm run build` has run).
+    await waitForUrl(`http://localhost:${PORT}/api/auth/status`);
+
+    if (!app.isPackaged) {
+      await waitForUrl(VITE_DEV_SERVER_URL);
+    }
   } catch (err) {
     console.error('[main] Backend failed to start:', err);
     app.quit();

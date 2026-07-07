@@ -17,7 +17,7 @@
           {
             "type": "command",
             "shell": "powershell",
-            "command": "$j = [Console]::In.ReadToEnd() | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -match '\\.(js|css|html)$') { npx prettier --write $f }"
+            "command": "$j = [Console]::In.ReadToEnd() | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -match '\\.(js|jsx|ts|tsx|css|html)$') { npx prettier --write $f }"
           }
         ]
       }

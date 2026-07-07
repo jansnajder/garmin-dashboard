@@ -36,6 +36,12 @@ class LogoutRequest(BaseModel):
     forget: bool = False
 
 
+class ForgetRequest(BaseModel):
+    """Slug of the remembered account to delete for POST /api/auth/forget."""
+
+    slug: str
+
+
 @router.get("/auth/status")
 def status() -> dict[str, str | None]:
     """Return the active account's email, or null when nobody is logged in."""
@@ -43,7 +49,7 @@ def status() -> dict[str, str | None]:
 
 
 @router.get("/auth/accounts")
-def accounts() -> list[dict[str, str]]:
+def accounts() -> list[dict[str, str | None]]:
     """Return the remembered accounts."""
     return auth.manager.list_accounts()
 
@@ -80,5 +86,13 @@ def select(body: SelectRequest) -> dict[str, str]:
 def logout(body: LogoutRequest) -> dict[str, str]:
     """Log out the active account, optionally forgetting it."""
     auth.manager.logout(body.forget)
+
+    return {"status": "ok"}
+
+
+@router.post("/auth/forget")
+def forget(body: ForgetRequest) -> dict[str, str]:
+    """Delete a remembered account and its stored tokens, whether or not it is active."""
+    auth.manager.forget(body.slug)
 
     return {"status": "ok"}

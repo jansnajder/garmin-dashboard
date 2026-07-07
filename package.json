@@ -5,13 +5,15 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "dev": "concurrently -n frontend,electron -c blue,green --kill-others-on-fail \"npm --prefix frontend run dev\" \"npm run start\"",
     "freeze": "cd backend && uv run pyinstaller backend.spec --noconfirm",
     "pack": "npm run freeze && electron-builder --dir",
     "dist": "npm run freeze && electron-builder"
   },
   "devDependencies": {
-    "electron": "^36.4.0",
-    "electron-builder": "^25.1.8"
+    "concurrently": "^10.0.3",
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.benderrobotics.garmindashboard",
@@ -21,6 +23,7 @@
     },
     "files": [
       "main.js",
+      "preload.js",
       "package.json"
     ],
     "extraResources": [

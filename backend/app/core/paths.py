@@ -17,17 +17,18 @@ def is_frozen() -> bool:
 
 def frontend_dir() -> str:
     """
-    Return the absolute path to the frontend directory in either mode.
+    Return the absolute path to the built frontend directory in either mode.
 
     Frozen builds unpack bundled data under sys._MEIPASS; dev runs read the
-    frontend/ folder at the repo root, next to the backend project.
+    Vite build output (frontend/dist) at the repo root, next to the backend
+    project.
 
     :return: absolute path to the frontend directory
     """
     if is_frozen():
         return str(Path(sys._MEIPASS) / "frontend")
 
-    return str(Path(__file__).resolve().parents[3] / "frontend")
+    return str(Path(__file__).resolve().parents[3] / "frontend" / "dist")
 
 
 def data_dir() -> Path:

@@ -1,0 +1,84 @@
+.nav {
+  height: 100%;
+  background: var(--surface);
+  border-right: 2px solid var(--border);
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The nav list is the flexible middle: it absorbs spare height (pinning the
+   bottom controls) and scrolls if the window is too short to fit everything. */
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.link,
+.action,
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 20px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+
+.link:hover,
+.action:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+.linkActive {
+  color: var(--text);
+  background: var(--surface-alt);
+  border-left-color: var(--accent);
+}
+
+.icon,
+.chevron {
+  flex-shrink: 0;
+}
+
+.linkActive .icon {
+  color: var(--accent);
+}
+
+/* Labels fade and collapse away with the sidebar width. */
+.label {
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+.collapsed .label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Collapse/expand toggle: a single chevron swapped instantly by state (no fade). */
+.toggle {
+  position: relative;
+  justify-content: flex-start;
+  color: var(--text-muted);
+}
+
+.toggle:hover {
+  color: var(--text);
+}

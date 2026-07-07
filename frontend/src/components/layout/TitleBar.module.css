@@ -1,0 +1,17 @@
+.bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
+  padding-left: 12px;
+  -webkit-app-region: drag;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  user-select: none;
+}

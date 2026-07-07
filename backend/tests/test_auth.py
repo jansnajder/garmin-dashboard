@@ -126,6 +126,40 @@ def test_logout_forget(manager):
     assert not (manager._data_dir() / "accounts" / SLUG).exists()
 
 
+def test_forget_by_slug(manager, factory):
+    """forget() deletes a specific remembered account and its tokens without touching others."""
+    manager.start_login(EMAIL, "pw")
+    manager.start_login("jane+garmin@test.org", "pw")
+    manager.logout()
+
+    manager.forget(SLUG)
+
+    slugs = {a["slug"] for a in manager.list_accounts()}
+
+    assert slugs == {"jane-garmin-test-org"}
+    assert not (manager._data_dir() / "accounts" / SLUG).exists()
+
+
+def test_forget_active_account(manager):
+    """Forgetting the active account also drops the active client."""
+    manager.start_login(EMAIL, "pw")
+
+    manager.forget(SLUG)
+
+    assert manager.list_accounts() == []
+    assert manager.active() is None
+    assert manager.active_slug() is None
+
+
+def test_forget_unknown_slug(manager):
+    """Forgetting an unknown slug is a no-op and leaves remembered accounts intact."""
+    manager.start_login(EMAIL, "pw")
+
+    manager.forget("nobody")
+
+    assert len(manager.list_accounts()) == 1
+
+
 def test_cache_key_prefix(client, cache, manager):
     """Data fetched while logged in lands in the cache under the account-slug prefix."""
     manager.start_login(EMAIL, "pw")
@@ -228,3 +262,7 @@ def test_auth_endpoints(client, manager):
     assert client.get("/api/auth/status").json() == {"active": EMAIL}
 
     assert client.post("/api/auth/select", json={"slug": "nobody"}).json() == {"status": "needs_login"}
+
+    assert client.post("/api/auth/forget", json={"slug": SLUG}).json() == {"status": "ok"}
+    assert client.get("/api/auth/accounts").json() == []
+    assert client.get("/api/auth/status").json() == {"active": None}

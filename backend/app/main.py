@@ -35,4 +35,4 @@ app.include_router(dashboard.router)
 app.include_router(cache.router)
 app.include_router(auth.router)
 
-app.frontend("/", directory=frontend_dir())
+app.frontend("/", directory=frontend_dir(), check_dir=False)
